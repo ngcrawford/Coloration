@@ -1,0 +1,239 @@
+#!/usr/bin/env python
+# encoding: utf-8
+"""
+spectra_processor.py
+
+Created by Nicholas Crawford on 2008-07-31.
+Copyright (c) 2008 __MyCompanyName__. All rights reserved.
+"""
+
+import sys
+import os
+import glob
+from copy import copy, deepcopy
+
+class SpecData(object):
+	"""docstring for SpecData"""
+	def __init__(self, datapoints, filename,  date, user, DarkSpecPres, RefSpecPre, NumbSampCompSpec, Spectrometers, IntTime, SpectAvged, Boxcar, CorrectElecticDark, CorrectDectNonLin, CorrectStrayLight, NumbPixels):
+		self.datapoints = datapoints
+		self.filename = filename
+		self.user = user
+		self.date = date
+		self.DarkSpecPres = DarkSpecPres
+		self.RefSpecPre = RefSpecPre
+		self.NumbSampCompSpec = NumbSampCompSpec
+		self.Spectrometers = Spectrometers
+		self.IntTime = IntTime
+		self.SpectAvged = SpectAvged
+		self.Boxcar = Boxcar
+		self.CorrectElecticDark = CorrectElecticDark
+		self.CorrectDectNonLin = CorrectDectNonLin
+		self.CorrectStrayLight = CorrectStrayLight
+		self.NumbPixels = NumbPixels
+		
+	def __copy__(self):
+		print '__copy__()'
+		return MyClass(self)
+		
+	def __deepcopy__(self, memo):
+		print '__deepcopy__(%s)' % str(memo)
+		return MyClass(copy.deepcopy(self, memo))
+
+
+def ParseFileName(filename):
+	filename = filename[::-1]  # reverse string
+		
+	# storage parameters:
+	filenumber = ''
+	fileID = ''
+	
+	# process path
+	for char in filename:
+		try:
+			n = int(char)
+			filenumber = filenumber + str(n)
+		except ValueError:
+			n = str(char)
+			fileID = fileID + str(n)
+			pass
+			
+		if char == "/":
+			break
+		
+	# trim unnecessary characters from file ID
+	fileID = fileID[::-1]
+	fileID = fileID[1:-4]
+		
+	filenumber = filenumber[::-1]
+	filenumber = int(filenumber)
+	return (fileID,filenumber)
+
+	
+def ParseDateTimeLine(line):
+	"""Simple method to handle line containing datetime sting"""
+	# add more functionality with date/time or similar module
+	
+	date = line[5:]
+	date = date.strip()
+	return date
+
+def ParseNonHeaderFile(filename):
+	data_points = []
+	header_data = [ParseFileName(filename)]
+	fin = open(filename,'r')
+	for line in fin:
+		line = line.strip()
+		line = line.split('\t')
+		datapoint = float(line[1])
+		data_points.append(datapoint)
+	return data_points
+
+
+
+def ParseHeaderFromSpecFile(filename):
+	datapoints = []
+	in_data = 0
+	fin = open(filename,'r')
+	line_count = 0
+	info = SpecData
+	info.filename = ParseFileName(filename)
+	
+	def get_data(line):
+		data = line.strip()
+		data = line.split(":")
+		return data
+	
+	line_count = 0
+	for line in fin:
+		line = line.strip() # clean lines of 'nasty' whitespace
+		# if line_count < 20:
+		# 	print line
+		line_count += 1
+
+		if line.find('Date') != -1:
+			date = line[5:]
+			date = date.strip()
+			info.date = date
+			
+			
+		if line.find('User') != -1:
+			data = get_data(line)
+			info.user = data[1]
+			
+		if line.find('Spectrometer Serial Number') != -1:
+			data = get_data(line)
+			info.Spectormeters = data[1]
+			
+		if line.find('Spectrometer Channel') != -1:
+			pass
+		
+		if line.find('Integration Time (usec)') != -1:
+			data = get_data(line)
+			info.IntTime = data[1]
+			
+		if line.find('Spectra Averaged') != -1:
+			data = get_data(line)
+			info.SpectAvged = data[1]
+			
+		if line.find('Boxcar Smoothing') != -1:
+			data = get_data(line)
+			info.Boxcar = data[1]
+			
+		if line.find('Correct for Electrical Dark') != -1:
+			data = get_data(line)
+			info.CorrectElecticDark = data[1]
+			
+		if line.find('Strobe/Lamp Enabled') != -1:
+			pass
+		
+		if line.find('Correct for Detector Non-linearity') != -1:
+			data = get_data(line)
+			info.CorrectDectNonLin = data[1]
+		
+		if line.find('Correct for Stray Light') != -1:
+			data = get_data(line)
+			info.CorrectStrayLight = data[1]
+			
+		if line.find('Number of Pixels in Spectrum') != -1:
+			data = get_data(line)
+			info.NumbPixels = data[1]
+
+		if line.find('Dark Spectrum Present') != -1:
+			data = get_data(line)
+			info.DarkSpecPres = data[1]
+			
+		if line.find('Reference Spectrum Present') != -1:
+			data = get_data(line)
+			info.RefSpecPre = data[1]
+		
+		if line.find('Number of Sampled Component Spectra') != -1:
+			data = get_data(line)
+			info.NumbSampCompSpec = data[1]
+			
+		if line.find('Spectrometers') != -1:
+			data = get_data(line)
+			info.Spectrometers = data[1]
+			
+		if in_data == 1:
+			datum = line.split()[1]
+			datapoints.append(datum)
+			
+		if line.find('Begin Spectral Data') != -1:
+			in_data = 1
+
+		if line.find('Begin Processed Spectral Data') != -1:
+			in_data = 1
+			
+
+	info.datapoints = datapoints
+	new = deepcopy(info)
+	return new
+
+
+def Create_Output(list_of_file_data, path):
+	outfile_name = path + 'merged_files.out'
+	outfile = open(outfile_name,'w')
+	numb_of_columns = len(list_of_file_data)
+	numb_of_rows = len(list_of_file_data[0].datapoints)
+	y = numb_of_rows
+	row_count = 0
+	while y > 0:
+		row_info = ''
+		header_row = ''
+		if row_count == 0:
+			for file_thing in list_of_file_data:
+				file_name = file_thing.filename
+				file_name = '%s_%s' % (file_name[0], file_name[1])
+				header_row = header_row + file_name + "\t"
+			header_row = header_row.strip() + '\n'
+			outfile.write(header_row)
+
+		for file_thing in list_of_file_data:
+			file_thing.datapoints[row_count]
+			row_info = row_info + str(file_thing.datapoints[row_count]) + '\t'
+		row_info = row_info.strip() +'\n'
+		outfile.write(row_info)
+		row_count += 1
+		y = y - 1
+	
+	outfile.close()
+
+	
+def main():
+	"""create tab delimited output from SpectraSuite Datafiles"""
+	#path = "/Users/nick/Desktop/Projects/Coloration/Spec Processor/testfiles_no_headers"    # comment out later
+	path = "/Users/nick/Desktop/Projects/Coloration/Spec Processor/testfiles_with_headers"  # comment out later
+	#path = "/Users/nick/Desktop/Projects/Coloration/Spec Processor/more_testfiles"  # comment out later
+	#path = sys.argv[2]+'/'
+	list_of_file_data = []
+	
+	for infile in glob.glob( os.path.join(path, '*.txt')):
+		file_data = ParseHeaderFromSpecFile(infile)
+		list_of_file_data.append(file_data)
+
+	Create_Output(list_of_file_data,path)
+
+if __name__ == '__main__':
+
+	main()
+
