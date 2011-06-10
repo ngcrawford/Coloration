@@ -12,6 +12,7 @@ import glob
 import numpy
 import argparse
 import itertools
+from scipy import interpolate
 
 def get_args():
     parser = argparse.ArgumentParser(prog='Spec Parser', description='Convert directory of Spec Files to CSV')
@@ -19,6 +20,7 @@ def get_args():
     parser.add_argument('-o','--out-file', help='a csv file to contain the merged specs.')
     parser.add_argument('--header', action='store_true', help='setting this flag will skip headers.')
     parser.add_argument('--min-nm', type=int, default=400, help='lowest nm to include. Default is 400 nm.')
+    parser.add_argument('--intrp', type=int, default=1, help='interpolate nm increments. Default is 1 nm')
     parser.add_argument('--max-nm', type=int, default=700, help='highest nm to include. Default is 700 nm.')
     parser.add_argument('-v','-verbose', action='store_true', help='write verbose output (non functional)')
     parser.add_argument('--version', action='version', version='%(prog)s beta', help='prints version.')
@@ -42,7 +44,7 @@ def getFilenames(path2dir):
     filenames = trans + txt + b
     return filenames
 
-def parseFile(filename, min_reflct, max_reflct, header):
+def parseFile(filename, min_reflct, max_reflct, header, intrp):
     """ Read in ocean optics datafile (with headers) and return array of reflectance measurments
         The user can provide min and max reflectance values (e.g. 300-700)
     """
@@ -78,6 +80,12 @@ def parseFile(filename, min_reflct, max_reflct, header):
     basename = os.path.splitext(os.path.basename(filename))[0]      
     reflectances = numpy.array(reflectances)
     nanometers = numpy.array(nanometers)
+    
+    # INTERPOLATE VALUES TO 1 NM INCREMENTS
+    tck = interpolate.splrep(nanometers,reflectances,s=0)
+    nanometers = numpy.arange(min_reflct,max_reflct,1)
+    reflectances = interpolate.splev(nanometers,tck,der=0)
+    
     return (reflectances, nanometers, basename)
 
 def smooth(x,window_len=11,window='hanning'):
@@ -184,7 +192,7 @@ def main():
     
     header_list = []
     for filename in filenames:
-      data = parseFile(filename, args.min_nm, args.max_nm, args.header)
+      data = parseFile(filename, args.min_nm, args.max_nm, args.header, args.intrp)
       header_list.append(data[-1])
       data_set.append(data[0])
     
