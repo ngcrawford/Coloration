@@ -29,6 +29,9 @@ def get_args():
         print 'Input directory does not exit.'
         sys.exit() 
     
+    if os.path.exists(os.path.abspath(args.out_file)) == True:
+        print "\n\t\t\tWARNING: OVERWRITING EXISTING OUTPUT AT %s\n" % (args.out_file)
+    
     return args
 
 
@@ -50,7 +53,7 @@ def parseFile(filename, min_reflct, max_reflct, header):
     save_reflectance = []
     if header == True:
         for count, line in enumerate(fin):
-            if "End Processed Spectral Data" in line: break
+            if "End" in line: break
                 
             if in_data_flag == True:
                 line_parts = line.strip().split()
@@ -59,7 +62,7 @@ def parseFile(filename, min_reflct, max_reflct, header):
                 if float(line_parts[0]) >= min_reflct:
                     save_reflectance.append(float(line_parts[1]))
                     
-            if "Begin Processed Spectral Data" in line: 
+            if "Begin" in line: 
                 in_data_flag = True
     else:
         for count, line in enumerate(fin):
