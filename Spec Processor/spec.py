@@ -11,27 +11,23 @@ import sys
 import glob
 import numpy
 import argparse
+import itertools
 
 def get_args():
     parser = argparse.ArgumentParser(prog='Spec Parser', description='Convert directory of Spec Files to CSV')
-    parser.add_argument('-i','--in-dir', help='the input directory containing the phylip files')
-    parser.add_argument('-o','--out-dir', help='directory to contain the gene trees.')
+    parser.add_argument('-i','--in-dir', help='the input directory containing the spec files.')
+    parser.add_argument('-o','--out-file', help='a csv file to contain the merged specs.')
     parser.add_argument('--header', action='store_true', help='setting this flag will skip headers.')
     parser.add_argument('--min-nm', type=int, default=400, help='lowest nm to include. Default is 400 nm.')
     parser.add_argument('--max-nm', type=int, default=700, help='highest nm to include. Default is 700 nm.')
-    parser.add_argument('-v','-verbose', action='store_true')
-    parser.add_argument('--version', action='version', version='%(prog)s beta')
+    parser.add_argument('-v','-verbose', action='store_true', help='write verbose output (non functional)')
+    parser.add_argument('--version', action='version', version='%(prog)s beta', help='prints version.')
     args = parser.parse_args()
     
     # CHECK ARGUEMENTS FOR ERRORS
     if os.path.exists(os.path.abspath(args.in_dir)) != True:
         print 'Input directory does not exit.'
         sys.exit() 
-    
-    if args.out_dir != None:
-        if os.path.exists(os.path.abspath(args.out_dir)) != True:
-            print 'Output directory does not exit.'
-            sys.exit()
     
     return args
 
@@ -74,8 +70,9 @@ def parseFile(filename, min_reflct, max_reflct, header):
                 save_reflectance.append(float(line_parts[1]))
                 save_count += 1
                 
+    basename = os.path.splitext(os.path.basename(filename))[0]      
     save_reflectance = numpy.array(save_reflectance)
-    return save_reflectance 
+    return (save_reflectance, basename)
 
 def calcColorMeasurments(data_array,min_reflct,max_reflct):
     
@@ -104,9 +101,13 @@ def calcColorMeasurments(data_array,min_reflct,max_reflct):
     results = numpy.array(results)
     return results
     
-def saveCSV(data_set):
+def saveCSV(data_set, header_list, fout):
+    fout = open(fout, 'w')
+    
+    s = ','.join(itertools.chain(header_list)) + '\n'
+    fout.write(s)
     data_set = numpy.transpose(data_set)
-    numpy.savetxt('test.out', data_set, delimiter=',', fmt='%1.4f')   # X is an array
+    numpy.savetxt(fout, data_set, delimiter=',', fmt='%1.4f')   # X is an array
     pass
         
 def main():
@@ -116,13 +117,14 @@ def main():
     data_set = []
     base_dir_name = os.path.split(args.in_dir)[-1]
     
+    header_list = []
     for filename in filenames:
       data = parseFile(filename, args.min_nm, args.max_nm, args.header)
-      # col_headers.append(data[0])
-      data_set.append(data)
+      header_list.append(data[1])
+      data_set.append(data[0])
     
     data_set = numpy.array(data_set)
-    saveCSV(data_set)
+    saveCSV(data_set, header_list, args.out_file)
     calcColorMeasurments(data_set,float(args.min_nm),float(args.max_nm))
 
 if __name__ == '__main__':
