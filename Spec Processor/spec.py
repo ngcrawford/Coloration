@@ -36,9 +36,10 @@ def get_args():
 
 
 def getFilenames(path2dir):
-    filenames = []
-    for infile in glob.glob( os.path.join(path2dir, '*.txt') ):
-        filenames.append(infile)
+    txt = glob.glob(os.path.join(path2dir, '*.txt'))
+    b = glob.glob(os.path.join(path2dir, '*.b'))
+    trans = glob.glob(os.path.join(path2dir, '*.transmission'))
+    filenames = trans + txt + b
     return filenames
 
 def parseFile(filename, min_reflct, max_reflct, header):
@@ -50,7 +51,8 @@ def parseFile(filename, min_reflct, max_reflct, header):
     in_data_flag = False
     
     fin = open(filename,'r')
-    save_reflectance = []
+    reflectances = []
+    nanometers = []
     if header == True:
         for count, line in enumerate(fin):
             if "End" in line: break
@@ -60,7 +62,8 @@ def parseFile(filename, min_reflct, max_reflct, header):
                 if float(line_parts[0]) >= max_reflct: 
                     continue
                 if float(line_parts[0]) >= min_reflct:
-                    save_reflectance.append(float(line_parts[1]))
+                    nanometers.append(float(line_parts[0]))
+                    reflectances.append(float(line_parts[1]))
                     
             if "Begin" in line: 
                 in_data_flag = True
@@ -69,13 +72,72 @@ def parseFile(filename, min_reflct, max_reflct, header):
             line_parts = line.strip().split()
             if float(line_parts[0]) >= max_reflct: continue
             if float(line_parts[0]) >= min_reflct:
-                save_sum += float(line_parts[1])
-                save_reflectance.append(float(line_parts[1]))
-                save_count += 1
+                nanometers.append(float(line_parts[0]))
+                reflectances.append(float(line_parts[1]))
                 
     basename = os.path.splitext(os.path.basename(filename))[0]      
-    save_reflectance = numpy.array(save_reflectance)
-    return (save_reflectance, basename)
+    reflectances = numpy.array(reflectances)
+    nanometers = numpy.array(nanometers)
+    return (reflectances, nanometers, basename)
+
+def smooth(x,window_len=11,window='hanning'):
+    """smooth the data using a window with requested size.
+
+    This method is based on the convolution of a scaled window with the signal.
+    The signal is prepared by introducing reflected copies of the signal 
+    (with the window size) in both ends so that transient parts are minimized
+    in the begining and end part of the output signal.
+
+    input:
+        x: the input signal 
+        window_len: the dimension of the smoothing window; should be an odd integer
+        window: the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'
+            flat window will produce a moving average smoothing.
+
+    output:
+        the smoothed signal
+
+    example:
+
+    t=linspace(-2,2,0.1)
+    x=sin(t)+randn(len(t))*0.1
+    y=smooth(x)
+
+    see also: 
+
+    numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman, numpy.convolve
+    scipy.signal.lfilter
+
+    TODO: the window parameter could be the window itself if an array instead of a string   
+    """
+
+    if x.ndim != 1:
+        raise ValueError, "smooth only accepts 1 dimension arrays."
+
+    if x.size < window_len:
+        raise ValueError, "Input vector needs to be bigger than window size."
+
+
+    if window_len<3:
+        return x
+
+
+    if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+        raise ValueError, "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
+
+
+    s=numpy.r_[2*x[0]-x[window_len-1::-1],x,2*x[-1]-x[-1:-window_len:-1]]
+    #print(len(s))
+    if window == 'flat': #moving average
+        w=numpy.ones(window_len,'d')
+    else:
+        w=eval('numpy.'+window+'(window_len)')
+
+    y=numpy.convolve(w/w.sum(),s,mode='same')
+    
+    return y[window_len:-window_len+1]
+
+
 
 def calcColorMeasurments(data_array,min_reflct,max_reflct):
     
@@ -123,7 +185,7 @@ def main():
     header_list = []
     for filename in filenames:
       data = parseFile(filename, args.min_nm, args.max_nm, args.header)
-      header_list.append(data[1])
+      header_list.append(data[-1])
       data_set.append(data[0])
     
     data_set = numpy.array(data_set)
