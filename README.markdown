@@ -1,3 +1,4 @@
+<code>
 Convert directory of Spec Files to CSV
 
 optional arguments:
@@ -19,3 +20,7 @@ optional arguments:
   -p, --plot            produce interactive plot with matplotlib.
   -v, -verbose          write verbose output (non functional)
   --version             prints version.
+</code>
+
+
+![screenshot](https://github.com/ngcrawford/Coloration/raw/master/web/screenshot_01.png)
