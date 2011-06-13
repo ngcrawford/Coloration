@@ -17,19 +17,19 @@ from scipy import interpolate
 
 def get_args():
     """Parse sys.argv"""
-    parser = argparse.ArgumentParser(prog='Spec Parser', description='Convert directory of Spec Files to CSV')
-    parser.add_argument('-i','--in-dir', help='the input directory containing the spec files.')
-    parser.add_argument('-o','--out-file', help='a csv file to contain the merged specs.')
-    parser.add_argument('--header', action='store_true', help='setting this flag will skip headers.')
-    parser.add_argument('--min-nm', type=int, default=300, help='lowest nm to include. Default is 400 nm.')
-    parser.add_argument('--max-nm', type=int, default=700, help='highest nm to include. Default is 700 nm.')
-    parser.add_argument('--intrp', type=float, default=1.0, help='interpolate nm increments. Default is 1 nm')
-    parser.add_argument('-s', '--smooth', action='store_true', help='add smoothing function. Default is a 100 nm hanning window')
+    parser = argparse.ArgumentParser(prog='Spec.py', description='Convert directory of Spec Files to CSV, interpolate nanometers, and smooth and plot data.')
+    parser.add_argument('-i','--in-dir', help='The input directory containing the spec files.')
+    parser.add_argument('-o','--out-file', help='A csv file to contain the merged specs suitable for opening in excel.')
+    parser.add_argument('--header', action='store_true', help='Setting this flag will skip headers.')
+    parser.add_argument('--min-nm', type=int, default=300, help='Lowest nm to include. Default is 400 nm.')
+    parser.add_argument('--max-nm', type=int, default=700, help='Highest nm to include. Default is 700 nm.')
+    parser.add_argument('--intrp', type=float, default=1.0, help='Interpolate nm increments. Default is 1 nm.')
+    parser.add_argument('-s', '--smooth', action='store_true', help='Add smoothing function. Default is a 100 nm hanning window.')
     parser.add_argument('--window-type', type=complex, choices=['flat','hanning','hamming','bartlett','blackman'])
-    parser.add_argument('--window-length', type=int, default=100, help='window size for smoothing. Longer is more aggressive. Default is 100.')
-    parser.add_argument('-p','--plot', action='store_true', help='produce interactive plot with matplotlib.')
-    parser.add_argument('-v','-verbose', action='store_true', help='write verbose output (non functional)')
-    parser.add_argument('--version', action='version', version='%(prog)s beta', help='prints version.')
+    parser.add_argument('--window-length', type=int, default=100, help='Window size for smoothing. Longer is more aggressive. Default is 100.')
+    parser.add_argument('-p','--plot', action='store_true', help='Produce interactive plots with matplotlib.')
+    parser.add_argument('-v','-verbose', action='store_true', help='Write verbose output (non functional).')
+    parser.add_argument('--version', action='version', version='%(prog)s beta', help='Print version.')
     args = parser.parse_args()
     
     # CHECK ARGUEMENTS FOR ERRORS
