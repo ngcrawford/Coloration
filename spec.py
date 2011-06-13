@@ -215,8 +215,7 @@ def plotThumbs(data_set, header_list):
                             horizontalalignment='center', verticalalignment='center')
             plt.plot(x,y)
             counter += 1
-    
-         
+       
 def main():
     args = get_args()
     filenames = getFilenames(args.in_dir)
@@ -234,15 +233,15 @@ def main():
       if count == 0:
           data_set.append(nm)
       data_set.append(reflectances)
-    
     data_set = numpy.array(data_set)
     
+    # DO SHIT WITH THE DATA!!!!
     if args.plot == True: 
         plotMean(data_set) 
         plotThumbs(data_set,header_list)
         plt.show()
     saveCSV(data_set, header_list, args.out_file)
-    calcColorMeasurments(data_set,float(args.min_nm),float(args.max_nm))
+    #calcColorMeasurments(data_set,float(args.min_nm),float(args.max_nm))
 
 if __name__ == '__main__':
     main()
