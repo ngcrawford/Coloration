@@ -9,22 +9,25 @@ Copyright (c) 2009 Boston Univeristy. All rights reserved.
 import os
 import sys
 import glob
-import numpy
 import argparse
 import itertools
+from pylab import *
+import numpy
 from scipy import interpolate
 
 def get_args():
+    """Parse sys.argv"""
     parser = argparse.ArgumentParser(prog='Spec Parser', description='Convert directory of Spec Files to CSV')
     parser.add_argument('-i','--in-dir', help='the input directory containing the spec files.')
     parser.add_argument('-o','--out-file', help='a csv file to contain the merged specs.')
     parser.add_argument('--header', action='store_true', help='setting this flag will skip headers.')
-    parser.add_argument('--min-nm', type=int, default=400, help='lowest nm to include. Default is 400 nm.')
+    parser.add_argument('--min-nm', type=int, default=300, help='lowest nm to include. Default is 400 nm.')
     parser.add_argument('--max-nm', type=int, default=700, help='highest nm to include. Default is 700 nm.')
-    parser.add_argument('--intrp', type=int, default=1, help='interpolate nm increments. Default is 1 nm')
-    parser.add_argument('-s', '--smooth', action='store_true', help='add smoothing fuction. Default is a 100 nm hanning window')
+    parser.add_argument('--intrp', type=float, default=1.0, help='interpolate nm increments. Default is 1 nm')
+    parser.add_argument('-s', '--smooth', action='store_true', help='add smoothing function. Default is a 100 nm hanning window')
     parser.add_argument('--window-type', type=complex, choices=['flat','hanning','hamming','bartlett','blackman'])
-    parser.add_argument('--window-length', type=int, default=100, help='window size for smoothing. Longer is more agressive. Default is 100.')
+    parser.add_argument('--window-length', type=int, default=100, help='window size for smoothing. Longer is more aggressive. Default is 100.')
+    parser.add_argument('-p','--plot', action='store_true', help='produce interactive plot with matplotlib.')
     parser.add_argument('-v','-verbose', action='store_true', help='write verbose output (non functional)')
     parser.add_argument('--version', action='version', version='%(prog)s beta', help='prints version.')
     args = parser.parse_args()
@@ -38,10 +41,10 @@ def get_args():
         print "\n\t\t\tWARNING: Overwriting existing output at %s\n" % (args.out_file)
     
     if args.window_type == None: args.window_type = 'hanning'
-    
     return args
 
 def getFilenames(path2dir):
+    """Parse file names in directory"""
     txt = glob.glob(os.path.join(path2dir, '*.txt'))
     b = glob.glob(os.path.join(path2dir, '*.b'))
     trans = glob.glob(os.path.join(path2dir, '*.transmission'))
@@ -102,7 +105,7 @@ def smooth(x,window_len=11,window='hanning'):
     return y[window_len:-window_len+1]
 
 def calcColorMeasurments(data_array,min_reflct,max_reflct):
-    
+    """Print Liam's color measurments to SDOUT"""
     results = []
     for index, row in enumerate(data_array):
         x = numpy.asfarray(data_array[index])
@@ -129,6 +132,7 @@ def calcColorMeasurments(data_array,min_reflct,max_reflct):
     return results
     
 def saveCSV(data_set, header_list, fout):
+    """Save files as table"""
     fout = open(fout, 'w')
     
     s = ','.join(itertools.chain(header_list)) + '\n'
@@ -154,8 +158,7 @@ def parseFile(filename, min_reflct, max_reflct, header, intrp):
 
             if in_data_flag == True:
                 line_parts = line.strip().split()
-                if float(line_parts[0]) >= max_reflct: 
-                    continue
+                if float(line_parts[0]) >= max_reflct: break
                 if float(line_parts[0]) >= min_reflct:
                     nanometers.append(float(line_parts[0]))
                     reflectances.append(float(line_parts[1]))
@@ -165,7 +168,7 @@ def parseFile(filename, min_reflct, max_reflct, header, intrp):
     else:
         for count, line in enumerate(fin):
             line_parts = line.strip().split()
-            if float(line_parts[0]) >= max_reflct: continue
+            if float(line_parts[0]) > max_reflct: break
             if float(line_parts[0]) >= min_reflct:
                 nanometers.append(float(line_parts[0]))
                 reflectances.append(float(line_parts[1]))
@@ -176,17 +179,46 @@ def parseFile(filename, min_reflct, max_reflct, header, intrp):
 
     # INTERPOLATE VALUES TO 1 NM INCREMENTS
     tck = interpolate.splrep(nanometers,reflectances,s=0)
-    nanometers = numpy.arange(min_reflct,max_reflct,1)
+    nanometers = numpy.arange(min_reflct,max_reflct,intrp)
     reflectances = interpolate.splev(nanometers,tck,der=0)
-    return (reflectances, nanometers, basename)
+    return (numpy.array(reflectances), numpy.array(nanometers), basename)
 
-def smoothData(window_type, window_length):
-    pass
+def plotMean(data_set):
+    mean = data_set[1:].mean(axis=0)
+    x = data_set.transpose()[:,0]
+    mean = data_set[1:].mean(axis=0)
+    var = data_set[1:].var(axis=0)
+    upper_var = mean + var
+    lower_var = mean - var
+    xlabel('Nanometers')
+    ylabel('Reflectance')
+    maxy = mean.max() + 3
+    ylim(0, maxy)
+    xlim(data_set.transpose()[:,0].min(), data_set.transpose()[:,0].max())
+    fill_between(x, upper_var, lower_var, alpha=0.15, color='k')
+    plot(x,mean,'k')
 
-
+def plotThumbs(data_set, header_list):
+    data_set = data_set.transpose()
+    numb_cols = data_set.shape[1]
+    cols = int(sqrt(numb_cols))
+    rows = cols + 1
+    x = data_set[:,0]
+    plt.figure()
+    counter = 0
+    for r in arange(0,rows):
+        for c in arange(0,cols):
+            if counter == data_set.shape[1]-1: break
+            ax = plt.subplot2grid((rows,cols),(r,c))
+            y = data_set[:,counter+1]
+            ax.annotate(header_list[counter], xy=(.5, .5),  xycoords='axes fraction',
+                            horizontalalignment='center', verticalalignment='center')
+            plt.plot(x,y)
+            counter += 1
+    
+         
 def main():
     args = get_args()
-    print args
     filenames = getFilenames(args.in_dir)
     base_dir_name = os.path.split(args.in_dir)[-1]
     
@@ -194,18 +226,26 @@ def main():
     col_headers = []
     data_set = []
     header_list = []
-    for filename in filenames:
-      data = parseFile(filename, args.min_nm, args.max_nm, args.header, args.intrp)
-      header_list.append(data[-1])
-      data_set.append(data[0])
+    for count, filename in enumerate(filenames):
+      reflectances, nm, header = parseFile(filename, args.min_nm, args.max_nm, args.header, args.intrp)
+      if args.smooth:
+          reflectances = smooth(reflectances, args.window_length, args.window_type,)
+      header_list.append(header)
+      if count == 0:
+          data_set.append(nm)
+      data_set.append(reflectances)
+    
     data_set = numpy.array(data_set)
     
-    # PROCESS DATA
-    if args.smooth: smoothData(args.window_type, args.window_length)    
-    
+    if args.plot == True: 
+        plotMean(data_set) 
+        plotThumbs(data_set,header_list)
+        plt.show()
     saveCSV(data_set, header_list, args.out_file)
     calcColorMeasurments(data_set,float(args.min_nm),float(args.max_nm))
 
 if __name__ == '__main__':
     main()
+
+
 
