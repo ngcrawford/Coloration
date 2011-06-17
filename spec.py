@@ -131,6 +131,9 @@ def calcColorMeasurments(data_array,min_reflct,max_reflct):
     results = numpy.array(results)
     return results
     
+
+
+    
 def saveCSV(data_set, header_list, fout):
     """Save files as table"""
     fout = open(fout, 'w')
@@ -217,6 +220,7 @@ def plotThumbs(data_set, header_list):
             counter += 1
        
 def main():
+
     args = get_args()
     filenames = getFilenames(args.in_dir)
     base_dir_name = os.path.split(args.in_dir)[-1]
@@ -224,7 +228,7 @@ def main():
     # SETUP DATASET
     col_headers = []
     data_set = []
-    header_list = []
+    header_list = ['nanometers']
     for count, filename in enumerate(filenames):
       reflectances, nm, header = parseFile(filename, args.min_nm, args.max_nm, args.header, args.intrp)
       if args.smooth:
@@ -241,10 +245,12 @@ def main():
         plotThumbs(data_set,header_list)
         plt.show()
     saveCSV(data_set, header_list, args.out_file)
+    return data_set
     #calcColorMeasurments(data_set,float(args.min_nm),float(args.max_nm))
 
 if __name__ == '__main__':
-    main()
+    try: z = main()
+    except KeyboardInterrupt: sys.exit(1) # makes clean control-C exit 
 
 
 
