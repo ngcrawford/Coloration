@@ -144,9 +144,8 @@ def calcColorMeasurments(data_array):
     results = numpy.array([Macedonia_values, Endler_values])    
     return results
         
-def saveCSV(data_set, column_names, row_names, fout):
-    """Save files as table"""
-    fout = open(fout, 'w')
+def printCSV(data_set, column_names, row_names):
+    """Print files as table"""
     s = "Value,"+','.join(itertools.chain(column_names[1:]))
     print s
     for count, line in enumerate(data_set):
@@ -154,6 +153,14 @@ def saveCSV(data_set, column_names, row_names, fout):
     
     # data_set = numpy.transpose(data_set)
     # numpy.savetxt(fout, data_set, delimiter=',', fmt='%1.4f')   # X is an array
+
+def saveCSV(data_set, column_names, fout):
+    """Save files as table"""
+    fout = open(fout,'w')
+    s = 'nanometers,' + ','.join(itertools.chain(column_names[1:]))
+    fout.write(s)
+    data_set = numpy.transpose(data_set)
+    numpy.savetxt(fout, data_set, delimiter=',', fmt='%1.4f')   # X is an array
 
     
 def parseFile(filename, min_reflct, max_reflct, header, intrp):
@@ -256,14 +263,14 @@ def main():
         plotMean(data_set) 
         plotThumbs(data_set,header_list)
         plt.show()
-    #saveCSV(data_set, header_list, args.out_file)
+    saveCSV(data_set, header_list, args.out_file)
     macedonia, endler = calcColorMeasurments(data_set)
     row_names = ['U (325-400nm)', 'B (400-475nm)', 'G (475-550nm)', 'Y (550-625)',\
                  'R (625-700)', 'Qt','MU', 'MS', 'LM', 'H', 'C']
     print 'Macedonia Values' 
-    saveCSV(macedonia, header_list, row_names, args.out_file)
+    printCSV(macedonia, header_list, row_names)
     print '\n' +'Endler Values'
-    saveCSV(endler, header_list, row_names, args.out_file)
+    printCSV(endler, header_list, row_names)
     
 
 if __name__ == '__main__':
