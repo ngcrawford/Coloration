@@ -104,45 +104,57 @@ def smooth(x,window_len=11,window='hanning'):
     y=numpy.convolve(w/w.sum(),s,mode='same')
     return y[window_len:-window_len+1]
 
-def calcColorMeasurments(data_array,min_reflct,max_reflct):
-    """Print Liam's color measurments to SDOUT"""
-    results = []
-    for index, row in enumerate(data_array):
-        x = numpy.asfarray(data_array[index])
-        U = ((sum(x[71:286])/216)*75)/((sum(x[71:1200])/1130)*375)
-        B = ((sum(x[287:506])/220)*75)/((sum(x[71:1200])/1130)*375)
-        G = ((sum(x[507:731])/225)*75)/((sum(x[71:1200])/1130)*375)
-        Y = ((sum(x[732:961])/230)*75)/((sum(x[71:1200])/1130)*375)
-        R = ((sum(x[962:1200])/239)*75)/((sum(x[71:1200])/1130)*375)
-        MU = G-U
+def calcColorMeasurments(data_array):
+    """Print Liam's color measurments to SDOUT"""        
+    Macedonia_values = []
+    Endler_values = []
+    data_array = data_array.transpose()
+    for author in ['Macedonia', 'Endler']:
+        # create slice indices
+        if author == 'Macedonia': Qt = (data_array[:,0] >= 325) & (data_array[:,0] <= 700)
+        else: Qt = (data_array[:,0] >= 400) & (data_array[:,0] <= 700)
+        U = (data_array[:,0] >= 325) & (data_array[:,0] <= 400)
+        B = (data_array[:,0] >= 400) & (data_array[:,0] <= 475)
+        G = (data_array[:,0] >= 475) & (data_array[:,0] <= 550)
+        Y = (data_array[:,0] >= 550) & (data_array[:,0] <= 625)
+        R = (data_array[:,0] >= 625) & (data_array[:,0] <= 700) 
+        
+        # do basic calculations
+        B = data_array[:,1:].compress(B,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
+        G = data_array[:,1:].compress(G,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
+        Y = data_array[:,1:].compress(Y,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
+        R = data_array[:,1:].compress(R,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
+        if author == 'Macedonia': U = data_array[:,1:].compress(U,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
+        else: U = numpy.zeros(data_array[:,1:].shape[-1])
+        Qt = data_array[:,1:].compress(Qt,0).sum(0)
+        
+        # calculate MU, MS, LM, C, and H
+        if author == 'Macedonia': MU = G-U
+        else: MU = numpy.zeros(data_array[:,1:].shape[-1])
         MS = Y-B
         LM = R-G
-        C = numpy.sqrt(pow(LM,2)+pow(MS,2)+pow(MU,2))
-        C1 = numpy.sqrt(pow(LM,2)+pow(MS,2))
-        H1 = numpy.degrees(numpy.arccos(LM/C1))
-        Qt = numpy.mean(x[71:1200])/100
-    
-        results.append([U, B, G, Y, R, MU, LM, C, C1, H1, Qt])
-    
-    print "U\tB\tG\tY\tR\tMU\tLM\tC\tC1\tH1\tQt"
-    print "%1.4f\t%1.4f\t%1.4f\t%1.4f\t%1.4f\t%1.4f\t%1.4f\t%1.4f\t%1.4f\t%1.4f\t%1.4f" % \
-    (U, B, G, Y, R, MU, LM, C, C1, H1, Qt)
-        
-    results = numpy.array(results)
+        if author == 'Macedonia': C = numpy.sqrt(pow(LM,2)+pow(MS,2)+pow(MU,2))
+        else: C = numpy.sqrt(pow(LM,2)+pow(MS,2))
+        H = numpy.degrees(numpy.arccos(LM/C))
+        if author == 'Macedonia': 
+            Macedonia_values = [U,B,G,Y,R,Qt,MU,MS,LM,C,H]
+        else: 
+            Endler_values = [U,B,G,Y,R,Qt,MU,MS,LM,C,H]
+            
+    results = numpy.array([Macedonia_values, Endler_values])    
     return results
-    
-
-
-    
-def saveCSV(data_set, header_list, fout):
+        
+def saveCSV(data_set, column_names, row_names, fout):
     """Save files as table"""
     fout = open(fout, 'w')
+    s = "Value,"+','.join(itertools.chain(column_names[1:]))
+    print s
+    for count, line in enumerate(data_set):
+        print row_names[count] + ',' + ','.join(["%.3f" % f for f in line])
     
-    s = ','.join(itertools.chain(header_list)) + '\n'
-    fout.write(s)
-    data_set = numpy.transpose(data_set)
-    numpy.savetxt(fout, data_set, delimiter=',', fmt='%1.4f')   # X is an array
-    pass
+    # data_set = numpy.transpose(data_set)
+    # numpy.savetxt(fout, data_set, delimiter=',', fmt='%1.4f')   # X is an array
+
     
 def parseFile(filename, min_reflct, max_reflct, header, intrp):
     """ Read in ocean optics datafile (with headers) and return array of reflectance measurments
@@ -244,9 +256,15 @@ def main():
         plotMean(data_set) 
         plotThumbs(data_set,header_list)
         plt.show()
-    saveCSV(data_set, header_list, args.out_file)
-    return data_set
-    #calcColorMeasurments(data_set,float(args.min_nm),float(args.max_nm))
+    #saveCSV(data_set, header_list, args.out_file)
+    macedonia, endler = calcColorMeasurments(data_set)
+    row_names = ['U (325-400nm)', 'B (400-475nm)', 'G (475-550nm)', 'Y (550-625)',\
+                 'R (625-700)', 'Qt','MU', 'MS', 'LM', 'H', 'C']
+    print 'Macedonia Values' 
+    saveCSV(macedonia, header_list, row_names, args.out_file)
+    print '\n' +'Endler Values'
+    saveCSV(endler, header_list, row_names, args.out_file)
+    
 
 if __name__ == '__main__':
     try: z = main()
