@@ -157,7 +157,7 @@ def printCSV(data_set, column_names, row_names):
 def saveCSV(data_set, column_names, fout):
     """Save files as table"""
     fout = open(fout,'w')
-    s = 'nanometers,' + ','.join(itertools.chain(column_names[1:]))
+    s = 'nanometers,' + ','.join(itertools.chain(column_names[1:])) + '\n'
     fout.write(s)
     data_set = numpy.transpose(data_set)
     numpy.savetxt(fout, data_set, delimiter=',', fmt='%1.4f')   # X is an array
@@ -195,7 +195,7 @@ def parseFile(filename, min_reflct, max_reflct, header, intrp):
                 nanometers.append(float(line_parts[0]))
                 reflectances.append(float(line_parts[1]))
 
-    basename = os.path.splitext(os.path.basename(filename))[0]      
+    basename = os.path.basename(filename)     
     reflectances = numpy.array(reflectances)
     nanometers = numpy.array(nanometers)
 
@@ -266,7 +266,7 @@ def main():
     saveCSV(data_set, header_list, args.out_file)
     macedonia, endler = calcColorMeasurments(data_set)
     row_names = ['U (325-400nm)', 'B (400-475nm)', 'G (475-550nm)', 'Y (550-625)',\
-                 'R (625-700)', 'Qt','MU', 'MS', 'LM', 'H', 'C']
+                 'R (625-700)', 'Qt','MU', 'MS', 'LM', 'C', 'H']
     print 'Macedonia Values' 
     printCSV(macedonia, header_list, row_names)
     print '\n' +'Endler Values'
