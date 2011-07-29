@@ -18,8 +18,8 @@ from scipy import interpolate
 def get_args():
     """Parse sys.argv"""
     parser = argparse.ArgumentParser(prog='Spec.py', description='Convert directory of Spec Files to CSV, interpolate nanometers, and smooth and plot data.')
-    parser.add_argument('-i','--in-dir', help='The input directory containing the spec files.')
-    parser.add_argument('-o','--out-file', help='A csv file to contain the merged specs suitable for opening in excel.')
+    parser.add_argument('-i','--input-dir', help='The input directory containing the spec files.')
+    parser.add_argument('-o','--output-file', help='A csv file to contain the merged specs suitable for opening in excel.')
     parser.add_argument('--header', action='store_true', help='Setting this flag will skip headers.')
     parser.add_argument('--min-nm', type=int, default=300, help='Lowest nm to include. Default is 400 nm.')
     parser.add_argument('--max-nm', type=int, default=700, help='Highest nm to include. Default is 700 nm.')
@@ -114,10 +114,10 @@ def calcColorMeasurments(data_array):
         if author == 'Macedonia': Qt = (data_array[:,0] >= 325) & (data_array[:,0] <= 700)
         else: Qt = (data_array[:,0] >= 400) & (data_array[:,0] <= 700)
         U = (data_array[:,0] >= 325) & (data_array[:,0] <= 400)
-        B = (data_array[:,0] >= 400) & (data_array[:,0] <= 475)
-        G = (data_array[:,0] >= 475) & (data_array[:,0] <= 550)
-        Y = (data_array[:,0] >= 550) & (data_array[:,0] <= 625)
-        R = (data_array[:,0] >= 625) & (data_array[:,0] <= 700) 
+        B = (data_array[:,0] > 400) & (data_array[:,0] <= 475)
+        G = (data_array[:,0] > 475) & (data_array[:,0] <= 550)
+        Y = (data_array[:,0] > 550) & (data_array[:,0] <= 625)
+        R = (data_array[:,0] > 625) & (data_array[:,0] <= 700) 
         
         # do basic calculations
         B = data_array[:,1:].compress(B,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
@@ -247,7 +247,7 @@ def main():
     # SETUP DATASET
     col_headers = []
     data_set = []
-    header_list = ['nanometers']
+    header_list = []
     for count, filename in enumerate(filenames):
       reflectances, nm, header = parseFile(filename, args.min_nm, args.max_nm, args.header, args.intrp)
       if args.smooth:
@@ -265,13 +265,15 @@ def main():
         plt.show()
     saveCSV(data_set, header_list, args.out_file)
     macedonia, endler = calcColorMeasurments(data_set)
-    row_names = ['U (325-400nm)', 'B (400-475nm)', 'G (475-550nm)', 'Y (550-625)',\
-                 'R (625-700)', 'Qt','MU', 'MS', 'LM', 'C', 'H']
+    row_names = ['U (325-400nm)', 'B (401-475nm)', 'G (476-550nm)', 'Y (551-625)',\
+                 'R (626-700)', 'Qt','MU', 'MS', 'LM', 'C', 'H']
     print 'Macedonia Values' 
     printCSV(macedonia, header_list, row_names)
     print '\n' +'Endler Values'
     printCSV(endler, header_list, row_names)
-    
+    return data_set
+
+data_set = main()
 
 if __name__ == '__main__':
     try: z = main()
