@@ -110,16 +110,16 @@ def calcColorMeasurments(data_array):
     Endler_values = []
     data_array = data_array.transpose()
     for author in ['Macedonia', 'Endler']:
-        # create slice indices
+        # CREATE SLICE INDICES
         if author == 'Macedonia': Qt = (data_array[:,0] >= 325) & (data_array[:,0] <= 700)
         else: Qt = (data_array[:,0] >= 400) & (data_array[:,0] <= 700)
-        U = (data_array[:,0] >= 325) & (data_array[:,0] <= 400)
-        B = (data_array[:,0] > 400) & (data_array[:,0] <= 475)
-        G = (data_array[:,0] > 475) & (data_array[:,0] <= 550)
-        Y = (data_array[:,0] > 550) & (data_array[:,0] <= 625)
-        R = (data_array[:,0] > 625) & (data_array[:,0] <= 700) 
+        U = (data_array[:,0] >= 325) & (data_array[:,0] < 400)
+        B = (data_array[:,0] >= 400) & (data_array[:,0] < 475)
+        G = (data_array[:,0] >= 475) & (data_array[:,0] < 550)
+        Y = (data_array[:,0] >= 550) & (data_array[:,0] < 625)
+        R = (data_array[:,0] >= 625) & (data_array[:,0] < 700) 
         
-        # do basic calculations
+        # DO BASIC CALCULATIONS
         B = data_array[:,1:].compress(B,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
         G = data_array[:,1:].compress(G,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
         Y = data_array[:,1:].compress(Y,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
@@ -128,7 +128,7 @@ def calcColorMeasurments(data_array):
         else: U = numpy.zeros(data_array[:,1:].shape[-1])
         Qt = data_array[:,1:].compress(Qt,0).sum(0)
         
-        # calculate MU, MS, LM, C, and H
+        # CALCULATE MU, MS, LM, C, AND H
         if author == 'Macedonia': MU = G-U
         else: MU = numpy.zeros(data_array[:,1:].shape[-1])
         MS = Y-B
@@ -265,8 +265,8 @@ def main():
         plt.show()
     saveCSV(data_set, header_list, args.out_file)
     macedonia, endler = calcColorMeasurments(data_set)
-    row_names = ['U (325-400nm)', 'B (401-475nm)', 'G (476-550nm)', 'Y (551-625)',\
-                 'R (626-700)', 'Qt','MU', 'MS', 'LM', 'C', 'H']
+    row_names = ['U (325-399nm)', 'B (40-474nm)', 'G (475-549nm)', 'Y (550-624)',\
+                 'R (625-699)', 'Qt','MU', 'MS', 'LM', 'C', 'H']
     print 'Macedonia Values' 
     printCSV(macedonia, header_list, row_names)
     print '\n' +'Endler Values'
