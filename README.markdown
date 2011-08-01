@@ -11,9 +11,9 @@ Basic Instructions:
 
         optional arguments:
           -h, --help            show this help message and exit
-          -i IN_DIR, --in-dir IN_DIR
+          -i IN_DIR, --input-dir IN_DIR
                                 The input directory containing the spec files.
-          -o OUT_FILE, --out-file OUT_FILE
+          -o OUT_FILE, --output-file OUT_FILE
                                 A csv file to contain the merged specs suitable for
                                 opening in excel.
           --header              Setting this flag will skip headers.

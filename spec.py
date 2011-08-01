@@ -33,12 +33,12 @@ def get_args():
     args = parser.parse_args()
     
     # CHECK ARGUEMENTS FOR ERRORS
-    if os.path.exists(os.path.abspath(args.in_dir)) != True:
+    if os.path.exists(os.path.abspath(args.input_dir)) != True:
         print 'Input directory does not exit.'
         sys.exit() 
     
-    if os.path.exists(os.path.abspath(args.out_file)) == True:
-        print "\n\t\t\tWARNING: Overwriting existing output at %s\n" % (args.out_file)
+    if os.path.exists(os.path.abspath(args.output_file)) == True:
+        print "\n\t\t\tWARNING: Overwriting existing output at %s\n" % (args.output_file)
     
     if args.window_type == None: args.window_type = 'hanning'
     return args
@@ -111,6 +111,7 @@ def calcColorMeasurments(data_array):
     data_array = data_array.transpose()
     for author in ['Macedonia', 'Endler']:
         # CREATE SLICE INDICES
+        print data_array.shape
         if author == 'Macedonia': Qt = (data_array[:,0] >= 325) & (data_array[:,0] <= 700)
         else: Qt = (data_array[:,0] >= 400) & (data_array[:,0] <= 700)
         U = (data_array[:,0] >= 325) & (data_array[:,0] < 400)
@@ -241,8 +242,8 @@ def plotThumbs(data_set, header_list):
 def main():
 
     args = get_args()
-    filenames = getFilenames(args.in_dir)
-    base_dir_name = os.path.split(args.in_dir)[-1]
+    filenames = getFilenames(args.input_dir)
+    base_dir_name = os.path.split(args.input_dir)[-1]
     
     # SETUP DATASET
     col_headers = []
@@ -258,12 +259,12 @@ def main():
       data_set.append(reflectances)
     data_set = numpy.array(data_set)
     
-    # DO SHIT WITH THE DATA!!!!
+    # DO #$%^ WITH THE DATA!!!!
     if args.plot == True: 
         plotMean(data_set) 
         plotThumbs(data_set,header_list)
         plt.show()
-    saveCSV(data_set, header_list, args.out_file)
+    saveCSV(data_set, header_list, args.output_file)
     macedonia, endler = calcColorMeasurments(data_set)
     row_names = ['U (325-399nm)', 'B (40-474nm)', 'G (475-549nm)', 'Y (550-624)',\
                  'R (625-699)', 'Qt','MU', 'MS', 'LM', 'C', 'H']
