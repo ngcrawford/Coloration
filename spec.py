@@ -158,7 +158,7 @@ def printCSV(data_set, column_names, row_names):
 def saveCSV(data_set, column_names, fout):
     """Save files as table"""
     fout = open(fout,'w')
-    s = 'nanometers,' + ','.join(itertools.chain(column_names[1:])) + '\n'
+    s = 'nanometers,' + ','.join(itertools.chain(column_names)) + '\n'
     fout.write(s)
     data_set = numpy.transpose(data_set)
     numpy.savetxt(fout, data_set, delimiter=',', fmt='%1.4f')   # X is an array
@@ -250,15 +250,15 @@ def main():
     data_set = []
     header_list = []
     for count, filename in enumerate(filenames):
-      reflectances, nm, header = parseFile(filename, args.min_nm, args.max_nm, args.header, args.intrp)
-      if args.smooth:
-          reflectances = smooth(reflectances, args.window_length, args.window_type,)
-      header_list.append(header)
-      if count == 0:
-          data_set.append(nm)
-      data_set.append(reflectances)
+        reflectances, nm, header = parseFile(filename, args.min_nm, args.max_nm, args.header, args.intrp)
+        if args.smooth:
+            reflectances = smooth(reflectances, args.window_length, args.window_type,)            
+        if count == 0:
+            data_set.append(nm)
+        header_list.append(header)
+        data_set.append(reflectances)
+    print header_list
     data_set = numpy.array(data_set)
-    
     # DO #$%^ WITH THE DATA!!!!
     if args.plot == True: 
         plotMean(data_set) 
@@ -273,8 +273,6 @@ def main():
     print '\n' +'Endler Values'
     printCSV(endler, header_list, row_names)
     return data_set
-
-data_set = main()
 
 if __name__ == '__main__':
     try: z = main()
