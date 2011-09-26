@@ -111,7 +111,6 @@ def calcColorMeasurments(data_array):
     data_array = data_array.transpose()
     for author in ['Macedonia', 'Endler']:
         # CREATE SLICE INDICES
-        print data_array.shape
         if author == 'Macedonia': Qt = (data_array[:,0] >= 325) & (data_array[:,0] <= 700)
         else: Qt = (data_array[:,0] >= 400) & (data_array[:,0] <= 700)
         U = (data_array[:,0] >= 325) & (data_array[:,0] < 400)
@@ -147,7 +146,7 @@ def calcColorMeasurments(data_array):
         
 def printCSV(data_set, column_names, row_names):
     """Print files as table"""
-    s = "Value,"+','.join(itertools.chain(column_names[1:]))
+    s = "Value,"+','.join(itertools.chain(column_names))
     print s
     for count, line in enumerate(data_set):
         print row_names[count] + ',' + ','.join(["%.3f" % f for f in line])
@@ -200,12 +199,10 @@ def parseFile(filename, min_reflct, max_reflct, header, intrp):
     basename = os.path.basename(filename)     
     reflectances = numpy.array(reflectances)
     nanometers = numpy.array(nanometers)
-    print nanometers[-1]
     
     # INTERPOLATE VALUES TO 1 NM INCREMENTS
     tck = interpolate.splrep(nanometers,reflectances,xb=min_reflct,s=0)
     nanometers = numpy.arange(min_reflct,max_reflct,intrp)
-    print nanometers[-1]
     reflectances = interpolate.splev(nanometers,tck,der=0)
     return (numpy.array(reflectances), numpy.array(nanometers), basename)
 
@@ -260,7 +257,6 @@ def main():
             data_set.append(nm)
         header_list.append(header)
         data_set.append(reflectances)
-    print header_list
     data_set = numpy.array(data_set)
     # DO #$%^ WITH THE DATA!!!!
     if args.plot == True: 
