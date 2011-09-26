@@ -118,7 +118,7 @@ def calcColorMeasurments(data_array):
         B = (data_array[:,0] >= 400) & (data_array[:,0] < 475)
         G = (data_array[:,0] >= 475) & (data_array[:,0] < 550)
         Y = (data_array[:,0] >= 550) & (data_array[:,0] < 625)
-        R = (data_array[:,0] >= 625) & (data_array[:,0] < 700) 
+        R = (data_array[:,0] >= 625) & (data_array[:,0] <= 700) 
         
         # DO BASIC CALCULATIONS
         B = data_array[:,1:].compress(B,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
@@ -169,7 +169,8 @@ def parseFile(filename, min_reflct, max_reflct, header, intrp):
         The user can provide min and max reflectance values (e.g., 300-700)
     """
     min_reflct = float(min_reflct)
-    max_reflct = float(max_reflct)
+    max_reflct = float(max_reflct) + 1.0
+        
     in_data_flag = False
 
     fin = open(filename,'r')
@@ -181,28 +182,30 @@ def parseFile(filename, min_reflct, max_reflct, header, intrp):
 
             if in_data_flag == True:
                 line_parts = line.strip().split()
-                if float(line_parts[0]) >= max_reflct: break
                 if float(line_parts[0]) >= min_reflct:
                     nanometers.append(float(line_parts[0]))
                     reflectances.append(float(line_parts[1]))
-
+                if float(line_parts[0]) > max_reflct: break
+                
             if "Begin" in line: 
                 in_data_flag = True
     else:
         for count, line in enumerate(fin):
             line_parts = line.strip().split()
-            if float(line_parts[0]) > max_reflct: break
             if float(line_parts[0]) >= min_reflct:
                 nanometers.append(float(line_parts[0]))
                 reflectances.append(float(line_parts[1]))
-
+            if float(line_parts[0]) > max_reflct: break
+            
     basename = os.path.basename(filename)     
     reflectances = numpy.array(reflectances)
     nanometers = numpy.array(nanometers)
-
+    print nanometers[-1]
+    
     # INTERPOLATE VALUES TO 1 NM INCREMENTS
-    tck = interpolate.splrep(nanometers,reflectances,s=0)
+    tck = interpolate.splrep(nanometers,reflectances,xb=min_reflct,s=0)
     nanometers = numpy.arange(min_reflct,max_reflct,intrp)
+    print nanometers[-1]
     reflectances = interpolate.splev(nanometers,tck,der=0)
     return (numpy.array(reflectances), numpy.array(nanometers), basename)
 
@@ -267,7 +270,7 @@ def main():
     saveCSV(data_set, header_list, args.output_file)
     macedonia, endler = calcColorMeasurments(data_set)
     row_names = ['U (325-399nm)', 'B (40-474nm)', 'G (475-549nm)', 'Y (550-624)',\
-                 'R (625-699)', 'Qt','MU', 'MS', 'LM', 'C', 'H']
+                 'R (625-700)', 'Qt','MU', 'MS', 'LM', 'C', 'H']
     print 'Macedonia Values' 
     printCSV(macedonia, header_list, row_names)
     print '\n' +'Endler Values'
