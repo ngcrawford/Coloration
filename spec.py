@@ -5,7 +5,18 @@ specparse.py
 
 Created by Nicholas Crawford on 2009-09-24.
 Copyright (c) 2009 Boston Univeristy. All rights reserved.
+
+Example: 
+
+python spec.py -i test_data/testfiles_with_headers/ \
+-o test_data/out.test  \
+--header   \
+--plot \
+-s \
+--window-length 25
+
 """
+
 import os
 import sys
 import glob
@@ -18,20 +29,48 @@ from Coloration import Coloration
 
 def get_args():
     """Parse sys.argv"""
-    parser = argparse.ArgumentParser(prog='Spec.py', description='Convert directory of Spec Files to CSV, interpolate nanometers, and smooth and plot data.')
-    parser.add_argument('-i','--input-dir', help='The input directory containing the spec files.')
-    parser.add_argument('-o','--output-file', help='A csv file to contain the merged specs suitable for opening in excel.')
-    parser.add_argument('--header', action='store_true', help='Setting this flag will skip headers.')
-    parser.add_argument('--min-nm', type=int, default=300, help='Lowest nm to include. Default is 400 nm.')
-    parser.add_argument('--max-nm', type=int, default=700, help='Highest nm to include. Default is 700 nm.')
-    parser.add_argument('--intrp', type=float, default=1.0, help='Interpolate nm increments. Default is 1 nm.')
-    parser.add_argument('-s', '--smooth', action='store_true', help='Add smoothing function. Default is a 100 nm hanning window.')
-    parser.add_argument('--window-type', type=complex, choices=['flat','hanning','hamming','bartlett','blackman'])
-    parser.add_argument('--window-length', type=int, default=100, help='Window size for smoothing. Longer is more aggressive. Default is 100.')
-    parser.add_argument('-p','--plot', action='store_true', help='Produce interactive plots with matplotlib.')
-    parser.add_argument('-v','-verbose', action='store_true', help='Write verbose output (non functional).')
-    parser.add_argument('--version', action='version', version='%(prog)s beta', help='Print version.')
-    parser.add_argument("--DDV",action='store_true',help="process files based on dewlap/dorsal/ventral in filename")
+    parser = argparse.ArgumentParser(prog='Spec.py', 
+        description='Convert directory of Spec Files to CSV, interpolate nanometers, and smooth and plot data.')
+    
+    parser.add_argument('-i','--input-dir', 
+        help='The input directory containing the spec files.')
+    
+    parser.add_argument('-o','--output-file', 
+        help='A csv file to contain the merged specs suitable for opening in excel.')
+    
+    parser.add_argument('--header', action='store_true', 
+        help='Setting this flag will skip headers.')
+    
+    parser.add_argument('--min-nm', type=int, default=300, 
+        help='Lowest nm to include. Default is 300 nm.')
+    
+    parser.add_argument('--max-nm', type=int, default=700, 
+        help='Highest nm to include. Default is 700 nm.')
+    
+    parser.add_argument('--intrp', type=float, default=1.0, 
+        help='Interpolate nm increments. Default is 1 nm.')
+    
+    parser.add_argument('-s', '--smooth', action='store_true', 
+        help='Add smoothing function. Default is a 100 nm hanning window.')
+    
+    parser.add_argument('--window-type', type=complex, choices=['flat','hanning','hamming','bartlett','blackman'],
+        help= 'Define window smoothing type.')
+
+    parser.add_argument('--window-length', type=int, default=100, 
+        help='Window size for smoothing. Longer is more aggressive. Default is 100.')
+
+    parser.add_argument('-p','--plot', action='store_true', 
+        help='Produce interactive plots with matplotlib.')
+
+    parser.add_argument('-v','-verbose', action='store_true', 
+        help='Write verbose output (non functional).')
+
+    parser.add_argument('--version', action='version', version='%(prog)s beta', 
+        help='Print version.')
+    
+    parser.add_argument("--DDV",action='store_true', 
+        help="process files based on dewlap/dorsal/ventral in filename")
+    
     args = parser.parse_args()
     
     # CHECK ARGUEMENTS FOR ERRORS
@@ -93,7 +132,7 @@ def smooth(x,window_len=11,window='hanning'):
     if window_len<3:
         return x
 
-    if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+    if window not in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
         raise ValueError, "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
 
     s=np.r_[2*x[0]-x[window_len-1::-1],x,2*x[-1]-x[-1:-window_len:-1]]
@@ -148,6 +187,7 @@ def calcColorMeasurments(data_array):
         
 def printCSV(data_set, column_names, row_names):
     """Print files as table"""
+    
     s = "Value,"+','.join(itertools.chain(column_names))
     print s
     for count, line in enumerate(data_set):
@@ -177,6 +217,7 @@ def parseFile(filename, min_reflct, max_reflct, header, intrp):
     fin = open(filename,'r')
     reflectances = []
     nanometers = []
+    
     if header == True:
         for count, line in enumerate(fin):
 
@@ -191,6 +232,7 @@ def parseFile(filename, min_reflct, max_reflct, header, intrp):
                 
             if "Begin" in line: 
                 in_data_flag = True
+    
     else:
         for count, line in enumerate(fin):
             line_parts = line.strip().split()
@@ -232,13 +274,16 @@ def plotThumbs(data_set, header_list):
     x = data_set[:,0]
     plt.figure()
     counter = 0
+    
     for r in arange(0,rows):
         for c in arange(0,cols):
             if counter == data_set.shape[1]-1: break
+            
             ax = plt.subplot2grid((rows,cols),(r,c))
             y = data_set[:,counter+1]
             ax.annotate(header_list[counter], xy=(.5, .5),  xycoords='axes fraction',
                             horizontalalignment='center', verticalalignment='center')
+            ax.set_ylim(0, 50)
             plt.plot(x,y)
             counter += 1
 
@@ -286,13 +331,11 @@ def process_dewlap_dorsal_ventral():
 def main():
 
     args = get_args()
-    print args.DDV
+    
     if args.DDV == True: 
         process_dewlap_dorsal_ventral()
     
     else:
-
-
         filenames = getFilenames(args.input_dir)
         base_dir_name = os.path.split(args.input_dir)[-1]
         
@@ -309,28 +352,30 @@ def main():
             header_list.append(header)
             data_set.append(reflectances)
         data_set = np.array(data_set)
+        
         # DO #$%^ WITH THE DATA!!!!
         if args.plot == True: 
             plotMean(data_set) 
             plotThumbs(data_set,header_list)
             plt.show()
+            plt.savefig('test.png')
+
         saveCSV(data_set, header_list, args.output_file)
         macedonia, endler = calcColorMeasurments(data_set)
         row_names = ['U (325-399nm)', 'B (40-474nm)', 'G (475-549nm)', 'Y (550-624)',\
                      'R (625-700)', 'Qt','MU', 'MS', 'LM', 'C', 'H']
+        
         print 'Macedonia Values' 
         printCSV(macedonia, header_list, row_names)
+        
         print '\n' +'Endler Values'
         printCSV(endler, header_list, row_names)
         return data_set
 
 
-
-
-
 if __name__ == '__main__':
 
-    try: z = main()
+    try: main()
     except KeyboardInterrupt: sys.exit(1) # makes clean control-C exit 
 
 
