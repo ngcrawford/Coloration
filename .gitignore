@@ -3,3 +3,4 @@ lizard*
 test.*
 BodyLateral*
 *csv
+*.pyc
