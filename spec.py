@@ -11,9 +11,10 @@ import sys
 import glob
 import argparse
 import itertools
+import jellyfish
 from pylab import *
-import numpy
 from scipy import interpolate
+from Coloration import Coloration
 
 def get_args():
     """Parse sys.argv"""
@@ -30,6 +31,7 @@ def get_args():
     parser.add_argument('-p','--plot', action='store_true', help='Produce interactive plots with matplotlib.')
     parser.add_argument('-v','-verbose', action='store_true', help='Write verbose output (non functional).')
     parser.add_argument('--version', action='version', version='%(prog)s beta', help='Print version.')
+    parser.add_argument("--DDV",action='store_true',help="process files based on dewlap/dorsal/ventral in filename")
     args = parser.parse_args()
     
     # CHECK ARGUEMENTS FOR ERRORS
@@ -76,7 +78,7 @@ def smooth(x,window_len=11,window='hanning'):
 
     see also: 
 
-    numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman, numpy.convolve
+    np.hanning, np.hamming, np.bartlett, np.blackman, np.convolve
     scipy.signal.lfilter
 
     TODO: the window parameter could be the window itself if an array instead of a string   
@@ -94,14 +96,14 @@ def smooth(x,window_len=11,window='hanning'):
     if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
         raise ValueError, "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
 
-    s=numpy.r_[2*x[0]-x[window_len-1::-1],x,2*x[-1]-x[-1:-window_len:-1]]
+    s=np.r_[2*x[0]-x[window_len-1::-1],x,2*x[-1]-x[-1:-window_len:-1]]
 
     if window == 'flat': #moving average
-        w=numpy.ones(window_len,'d')
+        w=np.ones(window_len,'d')
     else:
-        w=eval('numpy.'+window+'(window_len)')
+        w=eval('np.'+window+'(window_len)')
 
-    y=numpy.convolve(w/w.sum(),s,mode='same')
+    y=np.convolve(w/w.sum(),s,mode='same')
     return y[window_len:-window_len+1]
 
 def calcColorMeasurments(data_array):
@@ -125,23 +127,23 @@ def calcColorMeasurments(data_array):
         Y = data_array[:,1:].compress(Y,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
         R = data_array[:,1:].compress(R,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
         if author == 'Macedonia': U = data_array[:,1:].compress(U,0).sum(0) / data_array[:,1:].compress(Qt,0).sum(0)
-        else: U = numpy.zeros(data_array[:,1:].shape[-1])
+        else: U = np.zeros(data_array[:,1:].shape[-1])
         Qt = data_array[:,1:].compress(Qt,0).sum(0)
         
         # CALCULATE MU, MS, LM, C, AND H
         if author == 'Macedonia': MU = G-U
-        else: MU = numpy.zeros(data_array[:,1:].shape[-1])
+        else: MU = np.zeros(data_array[:,1:].shape[-1])
         MS = Y-B
         LM = R-G
-        if author == 'Macedonia': C = numpy.sqrt(pow(LM,2)+pow(MS,2)+pow(MU,2))
-        else: C = numpy.sqrt(pow(LM,2)+pow(MS,2))
-        H = numpy.degrees(numpy.arccos(LM/C))
+        if author == 'Macedonia': C = np.sqrt(pow(LM,2)+pow(MS,2)+pow(MU,2))
+        else: C = np.sqrt(pow(LM,2)+pow(MS,2))
+        H = np.degrees(np.arccos(LM/C))
         if author == 'Macedonia': 
             Macedonia_values = [U,B,G,Y,R,Qt,MU,MS,LM,C,H]
         else: 
             Endler_values = [U,B,G,Y,R,Qt,MU,MS,LM,C,H]
             
-    results = numpy.array([Macedonia_values, Endler_values])    
+    results = np.array([Macedonia_values, Endler_values])    
     return results
         
 def printCSV(data_set, column_names, row_names):
@@ -151,16 +153,16 @@ def printCSV(data_set, column_names, row_names):
     for count, line in enumerate(data_set):
         print row_names[count] + ',' + ','.join(["%.3f" % f for f in line])
     
-    # data_set = numpy.transpose(data_set)
-    # numpy.savetxt(fout, data_set, delimiter=',', fmt='%1.4f')   # X is an array
+    # data_set = np.transpose(data_set)
+    # np.savetxt(fout, data_set, delimiter=',', fmt='%1.4f')   # X is an array
 
 def saveCSV(data_set, column_names, fout):
     """Save files as table"""
     fout = open(fout,'w')
     s = 'nanometers,' + ','.join(itertools.chain(column_names)) + '\n'
     fout.write(s)
-    data_set = numpy.transpose(data_set)
-    numpy.savetxt(fout, data_set, delimiter=',', fmt='%1.4f')   # X is an array
+    data_set = np.transpose(data_set)
+    np.savetxt(fout, data_set, delimiter=',', fmt='%1.4f')   # X is an array
 
     
 def parseFile(filename, min_reflct, max_reflct, header, intrp):
@@ -177,6 +179,7 @@ def parseFile(filename, min_reflct, max_reflct, header, intrp):
     nanometers = []
     if header == True:
         for count, line in enumerate(fin):
+
             if "End" in line: break
 
             if in_data_flag == True:
@@ -197,14 +200,14 @@ def parseFile(filename, min_reflct, max_reflct, header, intrp):
             if float(line_parts[0]) > max_reflct: break
             
     basename = os.path.basename(filename)     
-    reflectances = numpy.array(reflectances)
-    nanometers = numpy.array(nanometers)
+    reflectances = np.array(reflectances)
+    nanometers = np.array(nanometers)
     
     # INTERPOLATE VALUES TO 1 NM INCREMENTS
     tck = interpolate.splrep(nanometers,reflectances,xb=min_reflct,s=0)
-    nanometers = numpy.arange(min_reflct,max_reflct,intrp)
+    nanometers = np.arange(min_reflct,max_reflct,intrp)
     reflectances = interpolate.splev(nanometers,tck,der=0)
-    return (numpy.array(reflectances), numpy.array(nanometers), basename)
+    return (np.array(reflectances), np.array(nanometers), basename)
 
 def plotMean(data_set):
     mean = data_set[1:].mean(axis=0)
@@ -238,8 +241,9 @@ def plotThumbs(data_set, header_list):
                             horizontalalignment='center', verticalalignment='center')
             plt.plot(x,y)
             counter += 1
-       
-def main():
+
+
+def process_dewlap_dorsal_ventral():
 
     args = get_args()
     filenames = getFilenames(args.input_dir)
@@ -249,31 +253,83 @@ def main():
     col_headers = []
     data_set = []
     header_list = []
+    
+    # Sort files by tissue allowing for missspellings
+    organized_by_tissue = {'dewlap':[], 'dorsal':[], 'ventral':[]}
     for count, filename in enumerate(filenames):
-        reflectances, nm, header = parseFile(filename, args.min_nm, args.max_nm, args.header, args.intrp)
-        if args.smooth:
-            reflectances = smooth(reflectances, args.window_length, args.window_type,)            
-        if count == 0:
-            data_set.append(nm)
-        header_list.append(header)
-        data_set.append(reflectances)
-    data_set = numpy.array(data_set)
-    # DO #$%^ WITH THE DATA!!!!
-    if args.plot == True: 
-        plotMean(data_set) 
-        plotThumbs(data_set,header_list)
-        plt.show()
-    saveCSV(data_set, header_list, args.output_file)
-    macedonia, endler = calcColorMeasurments(data_set)
-    row_names = ['U (325-399nm)', 'B (40-474nm)', 'G (475-549nm)', 'Y (550-624)',\
-                 'R (625-700)', 'Qt','MU', 'MS', 'LM', 'C', 'H']
-    print 'Macedonia Values' 
-    printCSV(macedonia, header_list, row_names)
-    print '\n' +'Endler Values'
-    printCSV(endler, header_list, row_names)
-    return data_set
+
+        fname = os.path.split(filename)[-1]
+        
+        for tissue in organized_by_tissue.keys():
+           distances = sort([jellyfish.hamming_distance(tissue, item) for item in fname.split("_")])
+           if distances[0] <= 2:
+                organized_by_tissue[tissue].append(filename)
+
+    
+    print organized_by_tissue
+
+
+
+    #     reflectances, nm, header = parseFile(filename, args.min_nm, args.max_nm, args.header, args.intrp)
+    #     if args.smooth:
+    #         reflectances = smooth(reflectances, args.window_length, args.window_type,)            
+    #     if count == 0:
+    #         data_set.append(nm)
+    #     header_list.append(header)
+    #     data_set.append(reflectances)
+    # data_set = np.array(data_set)
+    # # DO #$%^ WITH THE DATA!!!!
+    # if args.plot == True: 
+    #     plotMean(data_set) 
+    #     plotThumbs(data)
+       
+def main():
+
+    args = get_args()
+    print args.DDV
+    if args.DDV == True: 
+        process_dewlap_dorsal_ventral()
+    
+    else:
+
+
+        filenames = getFilenames(args.input_dir)
+        base_dir_name = os.path.split(args.input_dir)[-1]
+        
+        # SETUP DATASET
+        col_headers = []
+        data_set = []
+        header_list = []
+        for count, filename in enumerate(filenames):
+            reflectances, nm, header = parseFile(filename, args.min_nm, args.max_nm, args.header, args.intrp)
+            if args.smooth:
+                reflectances = smooth(reflectances, args.window_length, args.window_type,)            
+            if count == 0:
+                data_set.append(nm)
+            header_list.append(header)
+            data_set.append(reflectances)
+        data_set = np.array(data_set)
+        # DO #$%^ WITH THE DATA!!!!
+        if args.plot == True: 
+            plotMean(data_set) 
+            plotThumbs(data_set,header_list)
+            plt.show()
+        saveCSV(data_set, header_list, args.output_file)
+        macedonia, endler = calcColorMeasurments(data_set)
+        row_names = ['U (325-399nm)', 'B (40-474nm)', 'G (475-549nm)', 'Y (550-624)',\
+                     'R (625-700)', 'Qt','MU', 'MS', 'LM', 'C', 'H']
+        print 'Macedonia Values' 
+        printCSV(macedonia, header_list, row_names)
+        print '\n' +'Endler Values'
+        printCSV(endler, header_list, row_names)
+        return data_set
+
+
+
+
 
 if __name__ == '__main__':
+
     try: z = main()
     except KeyboardInterrupt: sys.exit(1) # makes clean control-C exit 
 
